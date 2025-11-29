@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from dotenv import load_dotenv
 from typing import Annotated, TypedDict, List, Dict, Any, Optional
 from langgraph.graph import StateGraph, END
@@ -16,7 +17,8 @@ class AssistantState(TypedDict):
     retrieved_examples: List[Dict[str, Any]]
     generated_response: str
     uploaded_files: List[Dict[str, str]]  # [{filename, text}]
-    conversation_history: Annotated[list, add_messages]
+    conversation_history: List[Dict[str, Any]]  # [{role, content, timestamp, intent}]
+    context_summary: str  # Summary of recent conversation
 
 
 # ---------- Intent Classifier ----------
@@ -118,6 +120,26 @@ class LangGraphCodeAssistant:
 
     # ---------- Nodes ----------
 
+    def _format_conversation_context(self, history: List[Dict[str, Any]], max_turns: int = 5) -> str:
+        """Format recent conversation history for context."""
+        if not history:
+            return "(No previous conversation)"
+        
+        recent = history[-max_turns:] if len(history) > max_turns else history
+        context_parts = []
+        
+        for turn in recent:
+            role = turn.get("role", "unknown")
+            content = turn.get("content", "")
+            intent = turn.get("intent", "")
+            
+            if role == "user":
+                context_parts.append(f"User asked ({intent}): {content[:200]}..." if len(content) > 200 else f"User asked ({intent}): {content}")
+            elif role == "assistant":
+                context_parts.append(f"Assistant responded: {content[:200]}..." if len(content) > 200 else f"Assistant: {content}")
+        
+        return "\n".join(context_parts) if context_parts else "(No previous conversation)"
+
     def _format_files_for_context(self, files: List[Dict[str, str]], max_chars: int = 240000) -> str:
         """Serialize uploaded files into a compact, LLM-friendly section."""
         parts = []
@@ -156,15 +178,22 @@ class LangGraphCodeAssistant:
     def generate_code_node(self, state: AssistantState):
         try:
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
+            conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
+            
             prompt = f"""You are a senior Python engineer.
 
-User request:
+Conversation Context (refer to this if relevant):
+{conv_ctx}
+
+Current User Request:
 {state['user_input']}
 
 Attached files (use them if relevant; modify or add code as requested):
 {files_ctx}
 
 Task: If the user asks to add/modify code in the attached files, propose a minimal patch. If the user asks to generate code in the user request, provide a clear and concise implementation.
+IMPORTANT: If the user refers to "earlier code" or "previous code", check the conversation context above.
+
 Return:
 1) Short plan
 2) Code implementation
@@ -184,9 +213,14 @@ make sure the code is in a markdown code block with ```python tags, and the code
     def explain_code_node(self, state: AssistantState):
         try:
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
+            conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
+            
             prompt = f"""You are a Python tutor.
 
-User question:
+Conversation Context (refer to previous discussion if relevant):
+{conv_ctx}
+
+Current User Question:
 {state['user_input']}
 
 If files are provided, explain *those files* in context of the question:
@@ -197,6 +231,7 @@ Provide:
 - Key functions/classes and their roles
 - Complexity/edge cases
 - Suggestions for improvement (brief)
+- Reference previous conversation if the user asks about "that code" or "earlier example"
 """
             res = self.explain_llm.invoke(prompt)
             state["generated_response"] = (res.content or "").strip()
@@ -207,9 +242,14 @@ Provide:
     def debug_file_node(self, state: AssistantState):
         try:
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
+            conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
+            
             prompt = f"""You are a senior Python debugger.
 
-User goal:
+Conversation Context (check if error relates to previous discussion):
+{conv_ctx}
+
+Current User Goal:
 {state['user_input']}
 
 Analyze the attached file(s), find likely issues, and propose a fix:
@@ -264,7 +304,8 @@ Return a compact, actionable report:
 
 # ---------- Public APIs ------------
 
-    def process(self, user_input: str, uploaded_files: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+    def process(self, user_input: str, uploaded_files: Optional[List[Dict[str, str]]] = None, 
+                conversation_history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Main entry: prompt is classified; files (if any) are provided as context to the routed node."""
         
         state: AssistantState = {
@@ -273,10 +314,27 @@ Return a compact, actionable report:
                 "retrieved_examples": [],
                 "generated_response": "",
                 "uploaded_files": uploaded_files or [],
-                "conversation_history": [],
+                "conversation_history": conversation_history or [],
+                "context_summary": "",
         }
         try:
-            return self.graph.invoke(state)
+            result = self.graph.invoke(state)
+            
+            # Add current turn to history
+            result["conversation_history"].append({
+                "role": "user",
+                "content": user_input,
+                "timestamp": datetime.now().isoformat(),
+                "intent": result.get("intent", "unknown")
+            })
+            result["conversation_history"].append({
+                "role": "assistant",
+                "content": result.get("generated_response", ""),
+                "timestamp": datetime.now().isoformat(),
+                "intent": result.get("intent", "unknown")
+            })
+            
+            return result
         
         except Exception as e:
 
