@@ -53,7 +53,7 @@ Decide the task from ONLY the user's message (files may be attached as context l
 - "generate": add/modify/produce code (e.g., "add a function", "refactor", "write tests").
 - "explain": explain a codebase/file/concept ("explain", "what does this do").
 - "debug": fix errors/tracebacks/failing tests; user mentions "error", "traceback", "bug", "fails".
-- "unsupported": unrelated to Python at all.
+- "unsupported": unrelated to Python and Javascript at all.
 
 Respond ONLY with compact JSON exactly like:
 {{"task":"<generate|explain|debug|unsupported>","user_input":"{user_input}"}}
@@ -91,7 +91,7 @@ class LangGraphCodeAssistant:
         self.code_llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="tngtech/deepseek-r1t-chimera:free",
+            model="qwen/qwen3-235b-a22b:free",
             temperature=0.2,
             max_tokens=1024,
             timeout=60,
@@ -180,7 +180,20 @@ class LangGraphCodeAssistant:
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
             conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
             
-            prompt = f"""You are a senior Python engineer.
+            # Detect language from user input
+            user_lower = state['user_input'].lower()
+            if any(kw in user_lower for kw in ['javascript', 'js', 'node', 'typescript', 'ts', 'java']):
+                lang_tag = "javascript"
+            else:
+                lang_tag = "python"
+            
+            prompt = f"""You are a senior Software engineer, proficient in Python and Javascript.
+
+IMPORTANT INSTRUCTIONS:
+- DO NOT use first-person language (I, me, my, I'll, I will, let me)
+- Write in second-person (you, your) when addressing the user OR use neutral third-person
+- Be direct and professional
+- Start directly with the plan, not with "I will" or "Let me"
 
 Conversation Context (refer to this if relevant):
 {conv_ctx}
@@ -195,11 +208,11 @@ Task: If the user asks to add/modify code in the attached files, propose a minim
 IMPORTANT: If the user refers to "earlier code" or "previous code", check the conversation context above.
 
 Return:
-1) Short plan
+1) Short plan in paragraphs format (describe what will be implemented/modified, no first-person language)
 2) Code implementation
-3) Code Explanation
+3) Code Explanation (It has to be very descriptive and informative)
 4) Notes/assumptions
-make sure the code is in a markdown code block with ```python tags, and the code ends with ```.
+make sure the code is in a markdown code block with ```{lang_tag} tags, and the code ends with ```.
 """
             res = self.code_llm.invoke(prompt)
             content = (res.content or "").strip()
@@ -215,7 +228,13 @@ make sure the code is in a markdown code block with ```python tags, and the code
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
             conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
             
-            prompt = f"""You are a Python tutor.
+            prompt = f"""You are a Python and Javascript tutor.
+
+IMPORTANT INSTRUCTIONS:
+- DO NOT use first-person language (I, me, my, I'll, let me)
+- Address the user directly using "you/your" OR use neutral explanations
+- Be clear and educational
+- Start explanations directly without "I will explain"            
 
 Conversation Context (refer to previous discussion if relevant):
 {conv_ctx}
@@ -244,7 +263,29 @@ Provide:
             files_ctx = self._format_files_for_context(state.get("uploaded_files", []))
             conv_ctx = self._format_conversation_context(state.get("conversation_history", []))
             
-            prompt = f"""You are a senior Python debugger.
+            # Detect language from user input or files
+            user_lower = state['user_input'].lower()
+            if any(kw in user_lower for kw in ['javascript', 'js', 'node', 'typescript', 'ts', 'java']):
+                lang_tag = "javascript"
+            elif state.get("uploaded_files"):
+                # Check file extensions
+                for f in state["uploaded_files"]:
+                    filename = f.get("filename", "").lower()
+                    if filename.endswith(('.js', '.ts', '.jsx', '.tsx')):
+                        lang_tag = "javascript"
+                        break
+                else:
+                    lang_tag = "python"
+            else:
+                lang_tag = "python"
+            
+            prompt = f"""You are a senior Python and Javascript debugger.
+
+IMPORTANT INSTRUCTIONS:
+- DO NOT use first-person language (I, me, my, I'll, let me)
+- Present findings directly and professionally
+- Use neutral language or address the user as "you"
+- Start directly with analysis, not "I will analyze"            
 
 Conversation Context (check if error relates to previous discussion):
 {conv_ctx}
@@ -259,8 +300,8 @@ Return a compact, actionable report:
 
 1) Summary (1–2 sentences)
 2) Root cause analysis (bullets)
-3) Code fix in python programming code:
-```python
+3) Code fix in {lang_tag} programming code:
+```{lang_tag}
 # patch here
 4) quick checks
 """
