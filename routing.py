@@ -91,7 +91,7 @@ class LangGraphCodeAssistant:
         self.code_llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="qwen/qwen3-235b-a22b:free",
+            model="kwaipilot/kat-coder-pro:free",
             temperature=0.2,
             max_tokens=1024,
             timeout=60,
@@ -100,7 +100,7 @@ class LangGraphCodeAssistant:
         self.explain_llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="x-ai/grok-4.1-fast:free",
+            model="meta-llama/llama-3.3-70b-instruct:free",
             temperature=0.2,
             max_tokens=600,
             timeout=50,
@@ -109,7 +109,7 @@ class LangGraphCodeAssistant:
         self.debug_llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="qwen/qwen3-coder:free",
+            model="kwaipilot/kat-coder-pro:free",
             temperature=0.2,
             max_tokens=700,
             timeout=50,
