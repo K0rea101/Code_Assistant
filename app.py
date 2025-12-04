@@ -142,73 +142,84 @@ def chat():
 @app.route("/api/complete", methods=["POST"])
 def complete():
     """
-    Code completion endpoint for AI-powered autocomplete suggestions.
+    AI-powered code completion endpoint (Copilot-style).
     
     Request body:
     {
-        "context": "string",  # Code before cursor
-        "position": number,   # Cursor position
-        "language": "string"  # Programming language
+        "content": "string",        # Full file content
+        "cursor_position": number,  # Cursor position (0-indexed)
+        "language": "string",       # Programming language (python, javascript, typescript)
+        "last_char": "string"       # Optional: last character typed
     }
     
     Response:
     {
-        "completion": "string",
-        "confidence": number
+        "completion": "string",      # Suggested completion text
+        "confidence": number,        # 0.0 - 1.0
+        "triggered": boolean,        # Whether completion was triggered
+        "trigger_reason": "string",  # Why it was/wasn't triggered
+        "context": {...}             # Additional context info
     }
     """
-    # Check if assistant is available
-    if assistant is None:
-        return jsonify({"completion": "", "confidence": 0, "error": "AI not configured"})
-    
     try:
-        data = request.get_json()
+        # Initialize completion service (lazy load)
+        global completion_service
+        if 'completion_service' not in globals():
+            from completion_service import CompletionService
+            try:
+                completion_service = CompletionService()
+                print("✅ Completion service initialized")
+            except Exception as init_error:
+                print(f"❌ Failed to initialize completion service: {init_error}")
+                return jsonify({
+                    "completion": "",
+                    "confidence": 0,
+                    "triggered": False,
+                    "error": "Completion service not available"
+                }), 503
         
+        # Parse request
+        data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
         
-        context = data.get("context", "")
+        content = data.get("content", "")
+        cursor_position = data.get("cursor_position", len(content))
         language = data.get("language", "python")
+        last_char = data.get("last_char")
         
-        if not context.strip():
-            return jsonify({"completion": "", "confidence": 0})
-        
-        # Use the code generation LLM for completions
-        # Build a completion-focused prompt
-        prompt = f"""Complete the following {language} code. Only provide the completion, no explanations.
-Code context:
-```{language}
-{context}
-```
-
-Provide ONLY the next few lines of code that should follow. Be concise."""
-
-        try:
-            result = assistant.code_llm.invoke(prompt)
-            completion = (result.content or "").strip()
-            
-            # Clean up the completion - remove markdown code blocks if present
-            if completion.startswith("```"):
-                lines = completion.split("\n")
-                # Remove first and last lines if they're code block markers
-                if lines[0].startswith("```"):
-                    lines = lines[1:]
-                if lines and lines[-1].strip() == "```":
-                    lines = lines[:-1]
-                completion = "\n".join(lines)
-            
+        # Validate inputs
+        if not content:
             return jsonify({
-                "completion": completion,
-                "confidence": 0.8
+                "completion": "",
+                "confidence": 0,
+                "triggered": False,
+                "trigger_reason": "Empty content"
             })
-            
-        except Exception as llm_error:
-            print(f"LLM completion error: {llm_error}")
-            return jsonify({"completion": "", "confidence": 0})
+        
+        if cursor_position < 0 or cursor_position > len(content):
+            return jsonify({
+                "error": "Invalid cursor_position",
+                "triggered": False
+            }), 400
+        
+        # Generate completion
+        result = completion_service.generate_completion(
+            content=content,
+            cursor_position=cursor_position,
+            language=language
+        )
+        
+        return jsonify(result)
         
     except Exception as e:
         print(f"Error in /api/complete: {e}")
-        return jsonify({"error": str(e), "completion": "", "confidence": 0}), 500
+        return jsonify({
+            "error": str(e),
+            "completion": "",
+            "confidence": 0,
+            "triggered": False
+        }), 500
 
 
 @app.route("/api/sessions", methods=["GET"])
