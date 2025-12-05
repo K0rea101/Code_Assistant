@@ -43,7 +43,7 @@ class CompletionService:
         self.llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=self.api_key,
-            model="google/gemini-2.0-flash-exp:free",  # More reliable for completions
+            model="kwaipilot/kat-coder-pro:free",  # More reliable for completions
             temperature=0.3,  # Low temperature for more deterministic completions
             max_tokens=200,   # Short completions (a few lines)
             timeout=15,       # Quick timeout for responsive UX

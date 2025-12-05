@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeMirror Text Editor</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Highlight.js for code syntax highlighting - Dracula theme (colorful) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/dracula.min.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header / Toolbar -->
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <h1 class="app-title">📝 Text Editor</h1>
+      </div>
+      <div class="toolbar-center">
+        <button id="new-btn" onclick="CodeMirrorEditor.clearDocument()" title="New Document">
+          📄 New
+        </button>
+        <button id="open-btn" onclick="CodeMirrorEditor.loadDocument()" title="Open File">
+          📂 Open
+        </button>
+        <button id="save-btn" onclick="CodeMirrorEditor.saveDocument()" title="Save File (Ctrl+S)">
+          💾 Save
+        </button>
+        <div class="separator"></div>
+        <label for="language-select">Language:</label>
+        <select id="language-select" onchange="CodeMirrorEditor.setLanguage(this.value)">
+          <option value="javascript">JavaScript</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="json">JSON</option>
+          <option value="markdown">Markdown</option>
+          <option value="python">Python</option>
+          <option value="plaintext">Plain Text</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button id="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle AI Assistant">
+          💬 AI Chat
+        </button>
+        <button id="theme-toggle" onclick="CodeMirrorEditor.toggleTheme()" title="Toggle Theme">
+          🌙 Dark
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Editor Container -->
+      <main class="editor-container">
+        <div id="editor"></div>
+      </main>
+
+      <!-- AI Chat Sidebar -->
+      <aside class="chat-sidebar" id="chat-sidebar">
+        <div class="chat-resizer" id="chat-resizer"></div>
+        <div class="chat-header">
+          <h2>🤖 AI Assistant</h2>
+          <button class="chat-toggle" onclick="toggleChatSidebar()" title="Toggle Sidebar">✕</button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="message assistant">
+            <div class="message-content">Hello! I'm your AI assistant. How can I help you with your code today?</div>
+          </div>
+        </div>
+        <div class="chat-input-container">
+          <textarea 
+            id="chat-input" 
+            placeholder="Ask me anything..." 
+            rows="3"
+            onkeydown="handleChatKeydown(event)"
+          ></textarea>
+          <button id="send-btn" onclick="sendMessage()" title="Send Message">
+            <span>Send</span>
+            <span class="send-icon">➤</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+      <div class="status-left">
+        <span class="status-item">
+          <span class="label">Lines:</span>
+          <span id="line-count">0</span>
+        </span>
+        <span class="status-item">
+          <span class="label">Characters:</span>
+          <span id="char-count">0</span>
+        </span>
+      </div>
+      <div class="status-center">
+        <span id="cursor-position">Ln 1, Col 1</span>
+      </div>
+      <div class="status-right">
+        <span id="current-language">JavaScript</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="dist/editor.bundle.js"></script>
+  <!-- Markdown and code highlighting libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Additional language support -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>
