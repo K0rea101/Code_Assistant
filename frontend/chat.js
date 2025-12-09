@@ -15,8 +15,16 @@ function toggleChatSidebar() {
   sidebar.classList.toggle('collapsed');
   mainContent.classList.toggle('chat-collapsed');
   
-  // Update toggle button text
+  // Update toggle button text based on new state
+  updateChatToggleButton();
+}
+
+// Update toggle button text to match sidebar state
+function updateChatToggleButton() {
+  const sidebar = document.getElementById('chat-sidebar');
   const toggleBtn = document.getElementById('chat-sidebar-toggle');
+  if (!toggleBtn) return;
+  
   if (sidebar.classList.contains('collapsed')) {
     toggleBtn.innerHTML = '💬 AI Chat';
   } else {
@@ -92,20 +100,38 @@ function addMessageToChat(role, content) {
 
 // Configure marked with highlight.js
 function initMarkdown() {
-  if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
-    // Configure marked to use highlight.js
+  if (typeof marked !== 'undefined') {
+    // Configure marked with proper highlight.js integration
     marked.setOptions({
       breaks: true,
-      gfm: true
+      gfm: true,
+      highlight: function(code, lang) {
+        if (typeof hljs !== 'undefined') {
+          if (lang && hljs.getLanguage(lang)) {
+            try {
+              return hljs.highlight(code, { language: lang }).value;
+            } catch (e) {
+              console.error('Highlight error:', e);
+            }
+          }
+          return hljs.highlightAuto(code).value;
+        }
+        return code;
+      }
     });
   }
 }
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMarkdown);
-} else {
+function initChat() {
   initMarkdown();
+  updateChatToggleButton();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initChat);
+} else {
+  initChat();
 }
 
 // Render markdown to HTML using marked library
@@ -188,12 +214,15 @@ function copyCode(button) {
   });
 }
 
-// Show typing indicator
+// Show typing indicator with unique ID
+let typingIndicatorCounter = 0;
+
 function showTypingIndicator() {
   const messagesContainer = document.getElementById('chat-messages');
   const typingDiv = document.createElement('div');
+  const uniqueId = `typing-indicator-${++typingIndicatorCounter}`;
   typingDiv.className = 'message assistant typing';
-  typingDiv.id = 'typing-indicator';
+  typingDiv.id = uniqueId;
   typingDiv.innerHTML = `
     <div class="message-content">
       <span class="typing-dots">
@@ -203,7 +232,7 @@ function showTypingIndicator() {
   `;
   messagesContainer.appendChild(typingDiv);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  return 'typing-indicator';
+  return uniqueId;
 }
 
 // Remove typing indicator
@@ -225,13 +254,17 @@ function getCodeContext() {
 
 // Call AI API
 async function callAIAPI(userMessage) {
+  // Get current code context from editor
+  const codeContext = getCodeContext();
+  
   const response = await fetch(API_CONFIG.endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      user_input: userMessage
+      user_input: userMessage,
+      code_context: codeContext || undefined
     })
   });
 
@@ -320,3 +353,4 @@ window.sendMessage = sendMessage;
 window.clearChat = clearChat;
 window.insertCodeToEditor = insertCodeToEditor;
 window.copyCode = copyCode;
+window.updateChatToggleButton = updateChatToggleButton;

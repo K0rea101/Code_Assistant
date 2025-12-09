@@ -25,16 +25,14 @@
         <button id="save-btn" onclick="CodeMirrorEditor.saveDocument()" title="Save File (Ctrl+S)">
           💾 Save
         </button>
+        <button id="run-btn" onclick="CodeMirrorEditor.runCode()" title="Run Code">
+          ▶️ Run
+        </button>
         <div class="separator"></div>
         <label for="language-select">Language:</label>
         <select id="language-select" onchange="CodeMirrorEditor.setLanguage(this.value)">
           <option value="javascript">JavaScript</option>
-          <option value="html">HTML</option>
-          <option value="css">CSS</option>
-          <option value="json">JSON</option>
-          <option value="markdown">Markdown</option>
-          <option value="python">Python</option>
-          <option value="plaintext">Plain Text</option>
+          <option value="python" selected>Python</option>
         </select>
       </div>
       <div class="toolbar-right">
@@ -42,7 +40,7 @@
           💬 AI Chat
         </button>
         <button id="theme-toggle" onclick="CodeMirrorEditor.toggleTheme()" title="Toggle Theme">
-          🌙 Dark
+          ☀️ Light
         </button>
       </div>
     </header>

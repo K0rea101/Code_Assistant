@@ -344,6 +344,7 @@ html, body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .main-content .editor-container {
@@ -728,4 +729,99 @@ html, body {
   .chat-sidebar {
     max-width: 100%;
   }
+}
+
+/* =====================
+   Output Panel Styles
+   ===================== */
+
+.output-panel {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  z-index: 100;
+}
+
+.output-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.output-header button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.output-header button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.output-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  margin: 0;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+/* Dark mode output panel */
+.dark-mode .output-panel {
+  background: #21222c;
+}
+
+.dark-mode .output-header {
+  background: #343746;
+  border-color: #44475a;
+}
+
+.dark-mode .output-content {
+  background: #282a36;
+  color: #f8f8f2;
+}
+
+/* Run button styling */
+#run-btn {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+#run-btn:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+.dark-mode #run-btn {
+  background: #50fa7b;
+  color: #282a36;
+  border-color: #50fa7b;
+}
+
+.dark-mode #run-btn:hover {
+  background: #69fb8f;
+  border-color: #69fb8f;
 }

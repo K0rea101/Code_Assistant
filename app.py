@@ -263,6 +263,130 @@ def clear_session(session_id: str):
     return jsonify({"message": f"Session {session_id} history cleared"})
 
 
+@app.route("/api/run", methods=["POST"])
+def run_code():
+    """
+    Execute Python or JavaScript code and return the output.
+    
+    Note: Interactive scripts using input() are not supported.
+    The script runs in non-interactive mode with no stdin.
+    
+    Request body:
+    {
+        "code": "string",      # Code to execute
+        "language": "string"   # "python" or "javascript"
+    }
+    
+    Response:
+    {
+        "stdout": "string",    # Standard output
+        "stderr": "string",    # Standard error
+        "error": "string",     # Execution error if any
+        "exit_code": number    # Exit code
+    }
+    """
+    import subprocess
+    import tempfile
+    import sys
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        code = data.get("code", "")
+        language = data.get("language", "python").lower()
+        
+        if not code.strip():
+            return jsonify({"error": "No code provided"}), 400
+        
+        if language not in ["python", "javascript"]:
+            return jsonify({"error": f"Unsupported language: {language}. Only 'python' and 'javascript' are supported."}), 400
+        
+        # Check if code uses input() - warn user
+        uses_input = False
+        if language == "python":
+            # Simple check for input() usage
+            if "input(" in code:
+                uses_input = True
+        elif language == "javascript":
+            # Check for readline, prompt, etc.
+            if any(x in code for x in ["readline", "prompt(", "process.stdin"]):
+                uses_input = True
+        
+        # Create a temporary file to run the code
+        if language == "python":
+            suffix = ".py"
+            # Use the same Python interpreter that's running this server
+            # Add -u for unbuffered output
+            cmd = [sys.executable, "-u"]
+        else:  # javascript
+            suffix = ".js"
+            cmd = ["node"]
+        
+        # Write code to temp file and execute
+        with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False, encoding='utf-8') as f:
+            f.write(code)
+            temp_file = f.name
+        
+        try:
+            # Run with timeout of 10 seconds (shorter timeout for better UX)
+            # Use stdin=subprocess.DEVNULL to prevent hanging on input()
+            result = subprocess.run(
+                cmd + [temp_file],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                stdin=subprocess.DEVNULL,  # No stdin - prevents hanging on input()
+                cwd=tempfile.gettempdir()
+            )
+            
+            stderr = result.stderr
+            error_msg = None
+            
+            # Check for EOFError which indicates input() was used
+            if "EOFError" in stderr and uses_input:
+                error_msg = "⚠️ Interactive input (input(), readline, etc.) is not supported in this environment. Please modify your code to use hardcoded values or function parameters instead."
+            
+            return jsonify({
+                "stdout": result.stdout,
+                "stderr": stderr,
+                "exit_code": result.returncode,
+                "error": error_msg
+            })
+            
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                "stdout": "",
+                "stderr": "",
+                "exit_code": -1,
+                "error": "⏱️ Execution timed out (10 second limit). Check for infinite loops or long-running operations."
+            })
+        except FileNotFoundError as e:
+            interpreter = "Python" if language == "python" else "Node.js"
+            return jsonify({
+                "stdout": "",
+                "stderr": "",
+                "exit_code": -1,
+                "error": f"{interpreter} interpreter not found. Please ensure it's installed and in your PATH."
+            })
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+                
+    except Exception as e:
+        print(f"Error in /api/run: {e}")
+        return jsonify({
+            "stdout": "",
+            "stderr": "",
+            "exit_code": -1,
+            "error": str(e)
+        }), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(e):
@@ -286,6 +410,7 @@ if __name__ == "__main__":
 ║  📡 API Endpoints:                                       ║
 ║     POST /api/chat     - AI chat assistant               ║
 ║     POST /api/complete - Code completion                 ║
+║     POST /api/run      - Run Python/JS code              ║
 ║     GET  /api/sessions - List sessions                   ║
 ║  🔧 Debug Mode: {str(debug).upper():5}                              ║
 ╚══════════════════════════════════════════════════════════╝
