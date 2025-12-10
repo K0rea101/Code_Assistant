@@ -406,13 +406,13 @@ if __name__ == "__main__":
 ╔══════════════════════════════════════════════════════════╗
 ║           Code IDE Backend Server Starting               ║
 ╠══════════════════════════════════════════════════════════╣
-║  🚀 Server: http://localhost:{port}                       ║
+║  🚀 Server: http://localhost:{port}                        ║
 ║  📡 API Endpoints:                                       ║
 ║     POST /api/chat     - AI chat assistant               ║
 ║     POST /api/complete - Code completion                 ║
 ║     POST /api/run      - Run Python/JS code              ║
 ║     GET  /api/sessions - List sessions                   ║
-║  🔧 Debug Mode: {str(debug).upper():5}                              ║
+║  🔧 Debug Mode: {str(debug).upper():5}                                    ║
 ╚══════════════════════════════════════════════════════════╝
     """)
     
