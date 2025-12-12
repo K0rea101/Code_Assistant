@@ -47,7 +47,7 @@ class LLMIntentClassifier:
         Return JSON: {"task": "<...>", "user_input": "<original>"}
         """
         prompt = f"""
-You are an intent classifier for a Python code assistant.
+You are an intent classifier for a Python and Javascript code assistant.
 
 Decide the task from ONLY the user's message (files may be attached as context later):
 - "generate": add/modify/produce code (e.g., "add a function", "refactor", "write tests").

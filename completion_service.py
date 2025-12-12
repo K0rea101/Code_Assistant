@@ -29,7 +29,7 @@ class CompletionService:
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize the completion service with DeepSeek Coder model.
+        Initialize the completion service with Kat Coder model.
         
         Args:
             api_key: OpenRouter API key (defaults to env variable)
