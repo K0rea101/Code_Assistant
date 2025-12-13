@@ -99,32 +99,32 @@ function addMessageToChat(role, content) {
 }
 
 // Configure marked with highlight.js
-function initMarkdown() {
-  if (typeof marked !== 'undefined') {
-    // Configure marked with proper highlight.js integration
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-      highlight: function(code, lang) {
-        if (typeof hljs !== 'undefined') {
-          if (lang && hljs.getLanguage(lang)) {
-            try {
-              return hljs.highlight(code, { language: lang }).value;
-            } catch (e) {
-              console.error('Highlight error:', e);
-            }
-          }
-          return hljs.highlightAuto(code).value;
-        }
-        return code;
-      }
-    });
-  }
-}
+// function initMarkdown() {
+//   if (typeof marked !== 'undefined') {
+//     // Configure marked with proper highlight.js integration
+//     marked.setOptions({
+//       breaks: true,
+//       gfm: true,
+//       highlight: function(code, lang) {
+//         if (typeof hljs !== 'undefined') {
+//           if (lang && hljs.getLanguage(lang)) {
+//             try {
+//               return hljs.highlight(code, { language: lang }).value;
+//             } catch (e) {
+//               console.error('Highlight error:', e);
+//             }
+//           }
+//           return hljs.highlightAuto(code).value;
+//         }
+//         return code;
+//       }
+//     });
+//   }
+// }
 
 // Initialize when DOM is ready
-function initChat() {
-  initMarkdown();
+function initChat() {2
+  //initMarkdown();
   updateChatToggleButton();
 }
 
@@ -278,17 +278,17 @@ async function callAIAPI(userMessage) {
   return data.generated_response || data.message || 'No response received';
 }
 
-// Insert code from AI response into editor
-function insertCodeToEditor(code) {
-  if (window.CodeMirrorEditor && window.CodeMirrorEditor.getView) {
-    const view = window.CodeMirrorEditor.getView();
-    const selection = view.state.selection.main;
-    view.dispatch({
-      changes: { from: selection.from, to: selection.to, insert: code }
-    });
-    view.focus();
-  }
-}
+// // Insert code from AI response into editor
+// function insertCodeToEditor(code) {
+//   if (window.CodeMirrorEditor && window.CodeMirrorEditor.getView) {
+//     const view = window.CodeMirrorEditor.getView();
+//     const selection = view.state.selection.main;
+//     view.dispatch({
+//       changes: { from: selection.from, to: selection.to, insert: code }
+//     });
+//     view.focus();
+//   }
+// }
 
 // Clear chat history
 function clearChat() {
@@ -351,6 +351,6 @@ window.toggleChatSidebar = toggleChatSidebar;
 window.handleChatKeydown = handleChatKeydown;
 window.sendMessage = sendMessage;
 window.clearChat = clearChat;
-window.insertCodeToEditor = insertCodeToEditor;
+//window.insertCodeToEditor = insertCodeToEditor;
 window.copyCode = copyCode;
 window.updateChatToggleButton = updateChatToggleButton;
