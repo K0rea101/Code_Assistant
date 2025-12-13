@@ -1,4 +1,4 @@
-# 🚀 Code Assistant IDE
+# 🚀 AI-Powered Web Based IDE
 
 A modern, web-based Code IDE with an integrated AI Assistant powered by LangGraph and OpenRouter. Features include intelligent code completion (Copilot-style), AI chat assistance, and real-time code execution for Python and JavaScript.
 
